@@ -34,7 +34,7 @@ log_dir_path = data_dir_path + "/logs"
 database_path = data_dir_path + "/evaluation.sqlite3"
 
 # クロスバリデーションの分割数
-# {reference equation: k = log(n) / log(2)}
+# { reference equation: k = log(n) / log(2) }
 folds_number = 10
 
 is_smote = True
