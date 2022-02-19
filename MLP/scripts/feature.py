@@ -5,7 +5,6 @@ import numpy as np
 import os
 import csv
 import glob
-import itertools
 import scipy.signal
 from aubio import source, pvoc, mfcc, pitch, tempo, filterbank
 from sklearn.model_selection import train_test_split
@@ -15,7 +14,7 @@ from sklearn.model_selection import train_test_split
 base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
 data_dir_path = base_absolute_path + "data"
 raw_wav_dir_path = data_dir_path + "/wavs/raws"
-output_wav_dir_path = data_dir_path + "/wavs/augment"
+augment_wav_dir_path = data_dir_path + "/wavs/augment"
 training_file_path = data_dir_path + "/train.csv"
 test_file_path = data_dir_path + "/test.csv"
 emotions_csv_path = data_dir_path + "/emotions.csv"
@@ -240,16 +239,17 @@ def get_feature(file_path):
     return all_features
 
 
+def convert_1d_to_2d(l, cols):
+    return [l[i:i + cols] for i in range(0, len(l), cols)]
+
+
 if __name__ == "__main__":
 
-    emotions = []
-    with open(emotions_csv_path) as f:
+    emotions = os.listdir(raw_wav_dir_path)
 
-        reader = csv.reader(f, delimiter=",")
-        for row in reader:
-            emotions.append(row)
-
-    emotions = list(itertools.chain.from_iterable(emotions))
+    with open(data_dir_path + "/emotions.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(convert_1d_to_2d(emotions, 1))
 
     print("\nMake training & test data from raw wavfile.\n")
     wav_count = 1
@@ -293,7 +293,7 @@ if __name__ == "__main__":
 
     for emotion in emotions:
 
-        wav_path = output_wav_dir_path + "/" + emotion
+        wav_path = augment_wav_dir_path + "/" + emotion
         wav_file_paths = glob.glob(wav_path + "/*.wav")
         all_wav_count += len(wav_file_paths)
 
@@ -302,7 +302,7 @@ if __name__ == "__main__":
 
     for index, emotion in enumerate(emotions):
 
-        wav_path = output_wav_dir_path + "/" + emotion
+        wav_path = augment_wav_dir_path + "/" + emotion
         wav_file_paths = glob.glob(wav_path + "/*.wav")
 
         for wav_file_path in wav_file_paths:

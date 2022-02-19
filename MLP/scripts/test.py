@@ -1,129 +1,89 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import numpy as np
 from keras.models import load_model
 from keras.utils import np_utils
-import scipy.stats as sp
 import os
 import csv
-import codecs
-from itertools import chain
+import glob
+import itertools
+import pandas as pd
+import shutil
 
-
-# 特徴量の次元数
-# MFCC: 39, PITCH: 2, VOLUME: 2, TEMPO: 1, RAW_WAV: 1
-FEATURE_MAX_LENGTH = 43
-
-# MFCCの区間平均の分割数
-TIME_SERIES_DIVISION_NUMBER = 90
-
-# "SimpleRNN", "SimpleRNNStack", "LSTM", "GRU", "Bidirectional_LSTM", "Bidirectional_GRU", "BiLSTMStack", "BiGRUStack", "CNN_RNN_BiGRU", "CNN_RNN_BiLSTM"
-MODEL_NAME = "CNN_RNN_BiLSTM"
-
-MODEL_FILE_NAME = "CNN_RNN_BiLSTM_2020-03-09_final06_99.8%_model.h5"
 
 # Path
-BASE_ABSOLUTE_PATH = os.path.dirname(os.path.realpath(__file__)) + "/../"
-DATA_DIR_PATH = BASE_ABSOLUTE_PATH + "data"
-TEST_FILE_PATH = DATA_DIR_PATH + "/test.csv"
-LOG_DIR_PATH = DATA_DIR_PATH + "/logs"
-EMOTION_LIST_PATH = DATA_DIR_PATH + "/emotions.csv"
-MODEL_FILE_PATH = LOG_DIR_PATH + "/" + MODEL_NAME + "/" + MODEL_FILE_NAME
+base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
+data_dir_path = base_absolute_path + "data"
+test_file_path = data_dir_path + "/test.csv"
+max_mean_csv_path = data_dir_path + "/max_mean.csv"
+best_model_csv_path = data_dir_path + "/best_model.csv"
+log_dir_path = data_dir_path + "/logs"
 
 
-def load_csv(file_name, delimiter):
+def write_csv(path, list):
 
-    lists = []
-    file = codecs.open(file_name, "r", "utf-8")
+    try:
+        # 書き込み UTF-8
+        with open(path, "w", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile, lineterminator="\n")
+            writer.writerows(list)
 
-    reader = csv.reader(file, delimiter=delimiter)
-
-    for line in reader:
-        lists.append(line)
-
-    file.close
-    return lists
-
-
-def load_data(file_name):
-    # load your data using this function
-
-    # CSVの制限を外す
-    # csv.field_size_limit(sys.maxsize)
-
-    data = []
-    target = []
-
-    with open(file_name, "r") as f:
-        reader = csv.reader(f, delimiter=",")
-
-        for columns in reader:
-            target.append(columns[0])
-
-            # こいつが決め手か？！
-            data.append(columns[1:])
-
-    data = np.array(data, dtype=np.float32)
-
-    # なぜか進数のエラーを返すので処理
-    target10b = []
-    for tar in target:
-        target10b.append(int(float(tar)))
-
-    target = np.array(target10b, dtype=np.int32)
-
-    return data, target
+    # 起こりそうな例外をキャッチ
+    except FileNotFoundError as e:
+        print(e)
+    except csv.Error as e:
+        print(e)
 
 
 if __name__ == "__main__":
 
-    emotion_list = load_csv(file_name=EMOTION_LIST_PATH, delimiter="\n")
-    emotions = list(chain.from_iterable(emotion_list))
+    max_means = []
+    with open(max_mean_csv_path) as f:
 
-    X, y = load_data(file_name=TEST_FILE_PATH)
+        reader = csv.reader(f, delimiter=",")
+        for row in reader:
+            max_means.append(row)
 
-    # NANを0に置換
-    # X = np.nan_to_num(X, nan=0.0)
+    max_means = list(itertools.chain.from_iterable(max_means))
 
-    emotion_index = y
+    # Read data
+    test = pd.read_csv(test_file_path)
+    y_test = test.iloc[:, 0].values.astype("int32")
+    X_test = (test.iloc[:, 1:].values).astype("float32")
 
-    # ラベルを one-hot-encoding形式 に変換
-    y = np_utils.to_categorical(y)
+    X_test /= float(max_means[0])
+    X_test -= float(max_means[1])
 
-    # 時系列に変換
-    X = np.reshape(X, (X.shape[0], TIME_SERIES_DIVISION_NUMBER, FEATURE_MAX_LENGTH), order="F")
+    y_test = np_utils.to_categorical(y_test)
 
-    # 3次元配列の2次元要素を1次元に（iOSのための取り計らい）
-    X = np.reshape(X, (X.shape[0], (TIME_SERIES_DIVISION_NUMBER * FEATURE_MAX_LENGTH)))
+    evaluations = []
+    model_paths = glob.glob(log_dir_path + "/*.h5")
 
-    # Z-Score関数による正規化
-    X = sp.stats.zscore(np.array(X), axis=1)
+    for model_path in model_paths:
 
-    # 学習済みのモデルを読み込む
-    model = load_model(MODEL_FILE_PATH)
+        model = load_model(model_path)
+        model.compile(loss="categorical_crossentropy", optimizer="rmsprop", metrics=["accuracy"])
 
-    model.summary()
+        score = model.evaluate(X_test, y_test, verbose=1)
+        model_name = os.path.basename(model_path)
 
-    model.compile(loss="categorical_crossentropy", optimizer="adadelta", metrics=["accuracy"])
+        print("\nModel Detail Name: {}\n".format(model_name))
+        print("Test accuracy: {}".format(score[1]))
+        print("Test loss: {}\n".format(score[0]))
 
-    score = model.evaluate(X, y, verbose=0)
-    print("Test loss :", score[0])
-    print("Test accuracy :", score[1])
+        evaluations.append([score[1], score[0], model_name])
+        mode = None
 
-    predictions = model.predict(X)
+    max_accuracy = max(evaluations)[0]
+    accuracy_maxs = [i for i in evaluations if i[0] == max_accuracy]
 
-    i = 0
-    for prediction in predictions:
+    min_loss = min([r[1] for r in accuracy_maxs])
+    loss_mins = [i for i in accuracy_maxs if i[1] == min_loss]
 
-        predict_word = emotions[list(prediction).index(prediction.max())]
-        reference_word = emotions[emotion_index[i]]
+    write_csv(best_model_csv_path, [loss_mins[0]])
+    best_model_name = loss_mins[0][2]
 
-        if predict_word == reference_word:
-            print(reference_word + " == " + predict_word + " 正答 ○" + " 確信率 : " + str(prediction.max() * 100) + "%")
-        else:
-            print(reference_word + " != " + predict_word + " 誤答 ×" + " 確信率 : " + str(prediction.max() * 100) + "%")
-
-        i += 1
+    shutil.copy(log_dir_path + "/" + best_model_name, data_dir_path + "/" + best_model_name)
+    shutil.rmtree(log_dir_path)
 
     print("\nAll process completed...")

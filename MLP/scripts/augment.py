@@ -7,7 +7,6 @@ import glob
 import shutil
 import librosa
 import soundfile as sf
-import csv
 
 
 # path
@@ -65,10 +64,6 @@ def pitch_shift(y, sr, rate=6):
     return x
 
 
-def convert_1d_to_2d(l, cols):
-    return [l[i:i + cols] for i in range(0, len(l), cols)]
-
-
 if __name__ == "__main__":
 
     if os.path.isdir(output_wav_dir_path):
@@ -78,10 +73,6 @@ if __name__ == "__main__":
     print("Training Data Augment Start...")
 
     words = os.listdir(raw_wav_dir_path)
-
-    with open(data_dir_path + "/emotions.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerows(convert_1d_to_2d(words, 1))
 
     wav_count = 1
     all_wav_count = 0
