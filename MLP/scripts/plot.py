@@ -92,10 +92,10 @@ if __name__ == "__main__":
         # datas = [item for item in datas if item is not None]
 
         if index == 0 or index == 1:
-            text = "{}: {}%, index: {}".format(max_min_labels[index], round(max(datas) * 100, 2), datas.index(max(datas)))
+            text = "{}: {}, index: {}".format(max_min_labels[index], round(max(datas), 2), datas.index(max(datas)))
 
         if index == 2 or index == 3:
-            text = "{}: {}%, index: {}".format(max_min_labels[index], round(min(datas) * 100, 2), datas.index(min(datas)))
+            text = "{}: {}, index: {}".format(max_min_labels[index], round(min(datas), 2), datas.index(min(datas)))
 
         learning_curve(datas, "Epoch", ylabels[index], titles[index], text)
 

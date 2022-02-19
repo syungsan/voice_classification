@@ -6,7 +6,7 @@ import os
 import csv
 import glob
 import scipy.signal
-from aubio import source, pvoc, mfcc, pitch, tempo, filterbank
+from aubio import source, pvoc, mfcc, tempo, filterbank
 from sklearn.model_selection import train_test_split
 
 
@@ -20,10 +20,9 @@ test_file_path = data_dir_path + "/test.csv"
 emotions_csv_path = data_dir_path + "/emotions.csv"
 
 is_mfcc = True
-is_pitch = False
-is_volume = False
-is_tempo = False
-is_raw_wav = False
+is_pitch = True
+is_volume = True
+is_tempo = True
 
 
 def write_csv(path, list):
@@ -56,28 +55,26 @@ def get_feature(file_path):
     win_s = 512 # Window Size
     hop_size = int(win_s / 4) # Hop Size
 
-    src = source(file_path, samplerate, hop_size)
-    samplerate = src.samplerate
-
     all_features = np.array([])
 
     if is_mfcc:
 
+        src = source(file_path, samplerate, hop_size)
+        samplerate = src.samplerate
+
         _p = 0.97
         n_filters = 40 # must be 40 for mfcc
         n_coeffs = 13
-
-        src = source(file_path, samplerate, hop_size)
-        samplerate = src.samplerate
         total_frames = 0
         total_samples = np.array([])
 
         pv = pvoc(win_s, hop_size)
-        f = filterbank(n_coeffs, win_s)
+        f = filterbank(n_filters, win_s)
         f.set_mel_coeffs_slaney(samplerate)
-        energies = np.zeros((n_coeffs,))
+        energies = np.zeros((n_filters,))
 
         while True:
+
             hop_samples, read = src()  # read hop_size new samples from source
             total_samples = np.append(total_samples, hop_samples)
 
@@ -98,6 +95,7 @@ def get_feature(file_path):
         index = 1
 
         while True:
+
             old_frame = hop_size * (index - 1)
             cur_frame = hop_size * index
 
@@ -132,43 +130,43 @@ def get_feature(file_path):
         all_features = np.concatenate([all_features, mfccs, deltas, ddeltas])
         print("Get MFCC in " + file_path + " ...")
 
+    if is_pitch:
 
-    """
-    if IS_PITCH:
+        from aubio import pitch
+
+        src = source(file_path, samplerate, hop_size)
+        samplerate = src.samplerate
+
         tolerance = 0.8
-        pitch_o = pitch("default", win_s, hop_s, samplerate)
+        pitch_o = pitch("default", win_s, hop_size, samplerate)
         pitch_o.set_unit("Hz")
         pitch_o.set_silence(-40)
         pitch_o.set_tolerance(tolerance)
         pitches = []
-        # confidences = []
 
-    if IS_VOLUME:
+        while True:
+
+            samples, read = src()
+            pitch = pitch_o(samples)[0]
+            pitches += [float(pitch)]
+
+            if read < hop_size:
+                break
+
+        feature = np.mean(pitches)
+        all_features = np.concatenate([all_features, [feature]])
+
+        print("Get Pitch in " + file_path + " ...")
+
+    if is_volume:
+
+        src = source(file_path, samplerate, hop_size)
         volumes = []
 
-    if IS_TEMPO:
-        tempo_o = tempo("specdiff", win_s, hop_s, samplerate)
-        beats = []
+        while True:
 
-    if IS_RAW_WAV:
-        raw_wavs = []
+            samples, read = src()
 
-    frames_read = 0
-
-    while True:
-
-        samples, read = s()
-
-        if IS_PITCH:
-            pitch = pitch_o(samples)[0]
-            # pitch = int(round(pitch))
-            # confidence = pitch_o.get_confidence()
-            # if confidence < 0.8: pitch = 0.
-            # print("%f %f %f" % (frames_read / float(samplerate), pitch, confidence))
-            pitches += [float(pitch)]
-            # confidences += [confidence]
-
-        if IS_VOLUME:
             # Compute the energy (volume) of the
             # current frame.
             volume = np.sum(samples ** 2) / len(samples)
@@ -177,64 +175,36 @@ def get_feature(file_path):
             volume = "{:.6f}".format(volume)
             volumes += [float(volume)]
 
-        if IS_TEMPO:
+            if read < hop_size:
+                break
+
+        feature = np.mean(volumes)
+        all_features = np.concatenate([all_features, [feature]])
+
+        print("Get Volume in " + file_path + " ...")
+
+    if is_tempo:
+
+        src = source(file_path, samplerate, hop_size)
+        samplerate = src.samplerate
+
+        tempo_o = tempo("specdiff", win_s, hop_size, samplerate)
+        beats = []
+
+        while True:
+
+            samples, read = src()
+
             is_beat = tempo_o(samples)
             beats.append(float(is_beat))
-            # if is_tempo:
-                # this_beat = tempo_o.get_last_s()
-                # beats.append(float(this_beat))
-                # if o.get_confidence() > .2 and len(beats) > 2.:
-                # break
 
-        if IS_RAW_WAV:
-            raw_wavs.append(list(map(float, samples)))
+            if read < hop_size:
+                break
 
-        frames_read += read
-        if read < hop_s: break
+        feature = np.mean(beats)
+        all_features = np.concatenate([all_features, [feature]])
 
-    all_features = []
-
-
-    if IS_PITCH:
-
-        deltas = np.diff(pitches, axis=0)
-        deltas = np.append(deltas, 0)
-
-        features = np.r_[[np.array(pitches)], [deltas]]
-        features = sp.stats.zscore(np.array(features), axis=1)
-
-        # NaN消し
-        features[np.isnan(features)] = 0.0
-
-        all_features += features.tolist()
-
-    if IS_VOLUME:
-
-        deltas = np.diff(volumes, axis=0)
-        deltas = np.append(deltas, 0)
-
-        features = np.r_[[np.array(volumes)], [deltas]]
-        features = sp.stats.zscore(np.array(features), axis=1)
-
-        all_features += features.tolist()
-
-    if IS_TEMPO:
-
-        features = sp.stats.zscore(np.array([beats]), axis=1)
-
-        # NaN消し
-        features[np.isnan(features)] = 0.0
-
-        all_features += features.tolist()
-
-    if IS_RAW_WAV:
-
-        features = [list(chain.from_iterable(raw_wavs))]
-        features = sp.stats.zscore(np.array(features), axis=1)
-        all_features += features.tolist()
-
-    return all_features, frames_read
-    """
+        print("Get Tempo in " + file_path + " ...")
 
     return all_features
 
