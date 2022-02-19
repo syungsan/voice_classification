@@ -20,9 +20,9 @@ test_file_path = data_dir_path + "/test.csv"
 emotions_csv_path = data_dir_path + "/emotions.csv"
 
 is_mfcc = True
-is_pitch = True
-is_volume = True
-is_tempo = True
+is_pitch = False
+is_volume = False
+is_tempo = False
 
 
 def write_csv(path, list):
