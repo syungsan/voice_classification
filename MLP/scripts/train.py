@@ -58,7 +58,7 @@ def write_csv(path, list):
         print(e)
 
 
-def create_model():
+def create_model(input_dim, nb_classes):
 
     # Here's a Deep Dumb MLP (DDMLP)
     model = Sequential()
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     for train, test in kf.split(X_train, _y_train):
 
         model = None
-        model = create_model()
+        model = create_model(input_dim=input_dim, nb_classes=nb_classes)
 
         fold_proccess = fld / folds_number * 100
         print("\nProccess was {}% completed.".format(fold_proccess))
