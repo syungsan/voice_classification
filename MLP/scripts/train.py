@@ -11,9 +11,9 @@ from sklearn.model_selection import StratifiedKFold
 from imblearn.over_sampling import SMOTE
 import os
 import csv
+import shutil
 import itertools
 import sqlite3
-import datetime
 import tensorflow as tf
 
 gpu_devices = tf.config.experimental.list_physical_devices("GPU")
@@ -79,9 +79,6 @@ def create_model(input_dim, nb_classes):
 
 if __name__ == "__main__":
 
-    if not os.path.isdir(log_dir_path):
-        os.makedirs(log_dir_path)
-
     emotions = []
     with open(emotions_csv_path) as f:
 
@@ -115,6 +112,11 @@ if __name__ == "__main__":
 
     write_csv(max_mean_csv_path, [[scale, mean]])
 
+    if os.path.isdir(log_dir_path):
+        shutil.rmtree(log_dir_path)
+
+    os.makedirs(log_dir_path)
+
     # define X-fold cross validation
     kf = StratifiedKFold(n_splits=folds_number, shuffle=True)
 
@@ -144,9 +146,7 @@ if __name__ == "__main__":
         if not os.path.isdir(log_dir_path):
             os.makedirs(log_dir_path)
 
-        now = datetime.datetime.now()
-
-        fpath = log_dir_path + "/process_model_{0:02d}".format(fld + 1) + "_{0:%Y-%m-%d-%H-%M-%S}".format(now) + \
+        fpath = log_dir_path + "/process_model_{0:02d}".format(fld + 1) + \
                 "_{epoch:02d}-{loss:.2f}-{val_loss:.2f}-{accuracy:.2f}-{val_accuracy:.2f}.h5"
 
         model_checkpoint = ModelCheckpoint(filepath=fpath, monitor='val_loss', verbose=1, save_best_only=False,
@@ -164,11 +164,9 @@ if __name__ == "__main__":
             if type(i) is Dropout:
                 model.layers.remove(i)
 
-        now = datetime.datetime.now()
-
         # Save the model
-        model.save(log_dir_path + "/final_model_{0:02d}".format(fld + 1) + "_{0:%Y-%m-%d-%H-%M-%S}".format(now) +
-                   "_{}%_model.h5".format(round(scores[1] * 100, 1)))
+        model.save(log_dir_path + "/final_model_{0:02d}".format(fld + 1) +
+                   "_{}-{}%_model.h5".format(round(scores[0], 2), round(scores[1], 2)))
 
         for epoch in range(epochs):
             _train_acc[epoch][fld] = hist.history["accuracy"][epoch]

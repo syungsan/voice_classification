@@ -59,20 +59,26 @@ if __name__ == "__main__":
     evaluations = []
     model_paths = glob.glob(log_dir_path + "/*.h5")
 
+    test_length = len(model_paths)
+    test_count = 1
+
     for model_path in model_paths:
 
         model = load_model(model_path)
-        model.compile(loss="categorical_crossentropy", optimizer="rmsprop", metrics=["accuracy"])
+        # model.compile(loss="categorical_crossentropy", optimizer="rmsprop", metrics=["accuracy"])
 
         score = model.evaluate(X_test, y_test, verbose=1)
         model_name = os.path.basename(model_path)
 
-        print("\nModel Detail Name: {}\n".format(model_name))
+        print("\nModel Detail Name: {}".format(model_name))
         print("Test accuracy: {}".format(score[1]))
-        print("Test loss: {}\n".format(score[0]))
+        print("Test loss: {}".format(score[0]))
 
         evaluations.append([score[1], score[0], model_name])
-        mode = None
+        model = None
+
+        print("Test = {}/{} completed...\n".format(test_count, test_length))
+        test_count += 1
 
     max_accuracy = max(evaluations)[0]
     accuracy_maxs = [i for i in evaluations if i[0] == max_accuracy]
@@ -80,7 +86,7 @@ if __name__ == "__main__":
     min_loss = min([r[1] for r in accuracy_maxs])
     loss_mins = [i for i in accuracy_maxs if i[1] == min_loss]
 
-    write_csv(best_model_csv_path, [loss_mins[0]])
+    write_csv(best_model_csv_path, [["accuracy", "loss", "best_model_name"], loss_mins[0]])
     best_model_name = loss_mins[0][2]
 
     shutil.copy(log_dir_path + "/" + best_model_name, data_dir_path + "/" + best_model_name)
