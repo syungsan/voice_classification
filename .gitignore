@@ -119,5 +119,5 @@ MLP/data/logs
 RNN/data/wavs
 RNN/data/logs
 RNN/save/
-sources/
+resource/
 voice_classification.iml
