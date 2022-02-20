@@ -9,7 +9,7 @@ import scipy.signal
 from aubio import source, pvoc, mfcc, tempo, filterbank
 from sklearn.model_selection import train_test_split
 import scipy.stats as sp
-from sklearn import preprocessing
+# from sklearn import preprocessing
 
 
 # Path
@@ -22,9 +22,9 @@ test_file_path = data_dir_path + "/test.csv"
 emotions_csv_path = data_dir_path + "/emotions.csv"
 
 is_mfcc = True
-is_pitch = False
-is_volume = False
-is_tempo = False
+is_pitch = True
+is_volume = True
+is_tempo = True
 
 
 def write_csv(path, list):
@@ -129,12 +129,13 @@ def get_feature(file_path):
         deltas = deltas.transpose()
         ddeltas = ddeltas.transpose()
 
+        # 正規化なし
         # mfccs = sp.stats.zscore(mfccs, axis=1) # axis=0 or axis=1
         # deltas = sp.stats.zscore(deltas, axis=1)
         # ddeltas = sp.stats.zscore(ddeltas, axis=1)
-        preprocessing.minmax_scale(mfccs, axis=1) # 0 ~ 1
-        preprocessing.minmax_scale(deltas, axis=1)
-        preprocessing.minmax_scale(ddeltas, axis=1)
+        # mfccs = preprocessing.minmax_scale(mfccs, axis=1) # 0 ~ 1
+        # deltas = preprocessing.minmax_scale(deltas, axis=1)
+        # ddeltas = preprocessing.minmax_scale(ddeltas, axis=1)
 
         mfccs = np.mean(mfccs, axis=1)
         deltas = np.mean(deltas, axis=1)
@@ -167,7 +168,7 @@ def get_feature(file_path):
                 break
 
         features = sp.stats.zscore(pitches)
-        # preprocessing.minmax_scale(pitches)
+        # features = preprocessing.minmax_scale(pitches)
         features = np.nan_to_num(features)
         feature = np.mean(features)
 
@@ -195,6 +196,7 @@ def get_feature(file_path):
                 break
 
         features = sp.stats.zscore(volumes)
+        # features = preprocessing.minmax_scale(volumes)
         features = np.nan_to_num(features)
         feature = np.mean(features)
 
@@ -220,6 +222,7 @@ def get_feature(file_path):
                 break
 
         features = sp.stats.zscore(beats)
+        # features = preprocessing.minmax_scale(beats)
         features = np.nan_to_num(features)
         feature = np.mean(features)
 
