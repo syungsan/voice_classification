@@ -23,9 +23,9 @@ for device in gpu_devices:
 
 # Path
 base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
+raw_wav_dir_path = base_absolute_path + "../wavs/raws"
+output_wav_dir_path = base_absolute_path + "../wavs/augment"
 data_dir_path = base_absolute_path + "data"
-raw_wav_dir_path = data_dir_path + "/wavs/raws"
-output_wav_dir_path = data_dir_path + "/wavs/augment"
 training_file_path = data_dir_path + "/train.csv"
 test_file_path = data_dir_path + "/test.csv"
 emotions_csv_path = data_dir_path + "/emotions.csv"

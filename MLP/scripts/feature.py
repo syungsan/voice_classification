@@ -14,9 +14,9 @@ import scipy.stats as sp
 
 # Path
 base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
+raw_wav_dir_path = base_absolute_path + "../wavs/raws"
+augment_wav_dir_path = base_absolute_path + "../wavs/augment"
 data_dir_path = base_absolute_path + "data"
-raw_wav_dir_path = data_dir_path + "/wavs/raws"
-augment_wav_dir_path = data_dir_path + "/wavs/augment"
 training_file_path = data_dir_path + "/train.csv"
 test_file_path = data_dir_path + "/test.csv"
 emotions_csv_path = data_dir_path + "/emotions.csv"
@@ -120,6 +120,9 @@ def get_feature(file_path):
         mfccs = np.hstack((mfccs, energies.reshape(energies.shape[0], 1)))
 
         deltas = np.diff(mfccs, axis=0)
+        print(len(deltas))
+        print(len(deltas[0]))
+
         deltas = np.pad(deltas, [(1, 0), (0, 0)], "constant")
 
         ddeltas = np.diff(deltas, axis=0)
@@ -167,7 +170,7 @@ def get_feature(file_path):
             if read < hop_size:
                 break
 
-        features = sp.stats.zscore(pitches)
+        features = sp.zscore(pitches)
         # features = preprocessing.minmax_scale(pitches)
         features = np.nan_to_num(features)
         feature = np.mean(features)
@@ -195,7 +198,7 @@ def get_feature(file_path):
             if read < hop_size:
                 break
 
-        features = sp.stats.zscore(volumes)
+        features = sp.zscore(volumes)
         # features = preprocessing.minmax_scale(volumes)
         features = np.nan_to_num(features)
         feature = np.mean(features)
@@ -221,7 +224,7 @@ def get_feature(file_path):
             if read < hop_size:
                 break
 
-        features = sp.stats.zscore(beats)
+        features = sp.zscore(beats)
         # features = preprocessing.minmax_scale(beats)
         features = np.nan_to_num(features)
         feature = np.mean(features)
@@ -240,7 +243,7 @@ if __name__ == "__main__":
 
     emotions = os.listdir(raw_wav_dir_path)
 
-    with open(data_dir_path + "/emotions.csv", "w", newline="") as f:
+    with open(emotions_csv_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(convert_1d_to_2d(emotions, 1))
 
@@ -280,34 +283,36 @@ if __name__ == "__main__":
     print("\nNow test data write to test.csv.")
     write_csv(test_file_path, tests)
 
-    print("\nMake train data from augment wavfile.\n")
-    wav_count = 1
-    all_wav_count = 0
+    if os.path.isdir(augment_wav_dir_path) and len(os.listdir(augment_wav_dir_path)) != 0:
 
-    for emotion in emotions:
+        print("\nMake train data from augment wavfile.\n")
+        wav_count = 1
+        all_wav_count = 0
 
-        wav_path = augment_wav_dir_path + "/" + emotion
-        wav_file_paths = glob.glob(wav_path + "/*.wav")
-        all_wav_count += len(wav_file_paths)
+        for emotion in emotions:
 
-    X = []
-    y = []
+            wav_path = augment_wav_dir_path + "/" + emotion
+            wav_file_paths = glob.glob(wav_path + "/*.wav")
+            all_wav_count += len(wav_file_paths)
 
-    for index, emotion in enumerate(emotions):
+        X = []
+        y = []
 
-        wav_path = augment_wav_dir_path + "/" + emotion
-        wav_file_paths = glob.glob(wav_path + "/*.wav")
+        for index, emotion in enumerate(emotions):
 
-        for wav_file_path in wav_file_paths:
-            print("{}/{} - {}".format(wav_count, all_wav_count, emotion))
+            wav_path = augment_wav_dir_path + "/" + emotion
+            wav_file_paths = glob.glob(wav_path + "/*.wav")
 
-            y.append(index)
-            features = get_feature(wav_file_path)
-            X.append(features.tolist())
-            wav_count += 1
+            for wav_file_path in wav_file_paths:
+                print("{}/{} - {}".format(wav_count, all_wav_count, emotion))
 
-    X_train += X
-    y_train += y
+                y.append(index)
+                features = get_feature(wav_file_path)
+                X.append(features.tolist())
+                wav_count += 1
+
+        X_train += X
+        y_train += y
 
     trains = []
     for X, y in zip(X_train, y_train):
