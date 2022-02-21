@@ -20,8 +20,10 @@ augment_wav_dir_path = base_absolute_path + "../wavs/augment"
 data_dir_path = base_absolute_path + "data"
 training_file_path = data_dir_path + "/train.csv"
 test_file_path = data_dir_path + "/test.csv"
-emotions_csv_path = data_dir_path + "/emotions.csv"
 feat_time_csv_path = data_dir_path + "/feat_time.csv"
+
+# 感情ラベルのリスト
+emotion_labels = ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"]
 
 # MFCCの区間平均の分割数
 time_series_division_number = 30
@@ -315,32 +317,26 @@ if __name__ == "__main__":
         writer = csv.writer(f)
         writer.writerow([feature_max_length, time_series_division_number])
 
-    emotions = os.listdir(raw_wav_dir_path)
-
-    with open(emotions_csv_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerows(convert_1d_to_2d(emotions, 1))
-
     print("\nMake training & test data from raw wavfile.\n")
     wav_count = 1
     all_wav_count = 0
 
-    for emotion in emotions:
+    for emotion_label in emotion_labels:
 
-        wav_path = raw_wav_dir_path + "/" + emotion
+        wav_path = raw_wav_dir_path + "/" + emotion_label
         wav_file_paths = glob.glob(wav_path + "/*.wav")
         all_wav_count += len(wav_file_paths)
 
     X = []
     y = []
 
-    for index, emotion in enumerate(emotions):
+    for index, emotion_label in enumerate(emotion_labels):
 
-        wav_path = raw_wav_dir_path + "/" + emotion
+        wav_path = raw_wav_dir_path + "/" + emotion_label
         wav_file_paths = glob.glob(wav_path + "/*.wav")
 
         for wav_file_path in wav_file_paths:
-            print("{}/{} - {}".format(wav_count, all_wav_count, emotion))
+            print("{}/{} - {}".format(wav_count, all_wav_count, emotion_label))
 
             y.append(index)
             features = get_feature(wav_file_path)
@@ -352,7 +348,7 @@ if __name__ == "__main__":
             section_averages = flatten_with_any_depth(section_averages)
             X.append(section_averages)
 
-            print(emotion + " => " + os.path.basename(wav_file_path) + " section average was completed...\n")
+            print(emotion_label + " => " + os.path.basename(wav_file_path) + " section average was completed...\n")
             wav_count += 1
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
@@ -371,16 +367,16 @@ if __name__ == "__main__":
         wav_count = 1
         all_wav_count = 0
 
-        for emotion in emotions:
+        for emotion_label in emotion_labels:
 
-            wav_path = augment_wav_dir_path + "/" + emotion
+            wav_path = augment_wav_dir_path + "/" + emotion_label
             wav_file_paths = glob.glob(wav_path + "/*.wav")
             all_wav_count += len(wav_file_paths)
 
         X = []
         y = []
 
-        for index, emotion in enumerate(emotions):
+        for index, emotion in enumerate(emotion_labels):
 
             wav_path = augment_wav_dir_path + "/" + emotion
             wav_file_paths = glob.glob(wav_path + "/*.wav")
