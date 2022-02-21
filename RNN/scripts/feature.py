@@ -9,9 +9,8 @@ import scipy.signal
 from aubio import source, pvoc, mfcc, tempo, filterbank
 from sklearn.model_selection import train_test_split
 import scipy.stats as sp
-# from sklearn import preprocessing
-
 from statistics import mean
+# from sklearn import preprocessing
 
 # Path
 base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
@@ -20,7 +19,6 @@ augment_wav_dir_path = base_absolute_path + "../wavs/augment"
 data_dir_path = base_absolute_path + "data"
 training_file_path = data_dir_path + "/train.csv"
 test_file_path = data_dir_path + "/test.csv"
-feat_time_csv_path = data_dir_path + "/feat_time.csv"
 
 # 感情ラベルのリスト
 emotion_labels = ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"]
@@ -163,6 +161,10 @@ def get_feature(file_path):
         # deltas = preprocessing.minmax_scale(deltas, axis=1)
         # ddeltas = preprocessing.minmax_scale(ddeltas, axis=1)
 
+        mfccs = np.nan_to_num(mfccs)
+        deltas = np.nan_to_num(deltas)
+        ddeltas = np.nan_to_num(ddeltas)
+
         all_features = np.concatenate([mfccs, deltas, ddeltas])
         print("Get MFCC in " + file_path + " ...")
 
@@ -189,7 +191,6 @@ def get_feature(file_path):
             if read < hop_size:
                 break
 
-        pitches = np.nan_to_num(pitches)
         pitches = np.insert(pitches, 0, 0)
 
         deltas = np.diff(pitches, axis=0)
@@ -197,6 +198,9 @@ def get_feature(file_path):
 
         pitches = sp.zscore(pitches)
         deltas = sp.zscore(deltas)
+
+        pitches = np.nan_to_num(pitches)
+        deltas = np.nan_to_num(deltas)
 
         all_features = np.concatenate([all_features, [pitches], [deltas]])
         print("Get Pitch in " + file_path + " ...")
@@ -230,6 +234,9 @@ def get_feature(file_path):
         volumes = sp.zscore(volumes)
         deltas = sp.zscore(deltas)
 
+        volumes = np.nan_to_num(volumes)
+        deltas = np.nan_to_num(deltas)
+
         all_features = np.concatenate([all_features, [volumes], [deltas]])
         print("Get Volume in " + file_path + " ...")
 
@@ -254,6 +261,7 @@ def get_feature(file_path):
         beats = np.nan_to_num(beats)
         beats = np.insert(beats, 0, 0)
         beats = sp.zscore(beats)
+        beats = np.nan_to_num(beats)
 
         all_features = np.concatenate([all_features, [beats]])
         print("Get Tempo in " + file_path + " ...")
@@ -312,10 +320,6 @@ def flatten_with_any_depth(nested_list):
 
 
 if __name__ == "__main__":
-
-    with open(feat_time_csv_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([feature_max_length, time_series_division_number])
 
     print("\nMake training & test data from raw wavfile.\n")
     wav_count = 1
