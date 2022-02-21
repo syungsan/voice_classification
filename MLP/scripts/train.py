@@ -12,7 +12,6 @@ from imblearn.over_sampling import SMOTE
 import os
 import csv
 import shutil
-import itertools
 import sqlite3
 import tensorflow as tf
 
@@ -23,12 +22,11 @@ for device in gpu_devices:
 
 # Path
 base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
+raw_wav_dir_path = base_absolute_path + "../wavs/raws"
+output_wav_dir_path = base_absolute_path + "../wavs/augment"
 data_dir_path = base_absolute_path + "data"
-raw_wav_dir_path = data_dir_path + "/wavs/raws"
-output_wav_dir_path = data_dir_path + "/wavs/augment"
 training_file_path = data_dir_path + "/train.csv"
 test_file_path = data_dir_path + "/test.csv"
-emotions_csv_path = data_dir_path + "/emotions.csv"
 max_mean_csv_path = data_dir_path + "/max_mean.csv"
 log_dir_path = data_dir_path + "/logs"
 database_path = data_dir_path + "/evaluation.sqlite3"
@@ -78,15 +76,6 @@ def create_model(input_dim, nb_classes):
 
 
 if __name__ == "__main__":
-
-    emotions = []
-    with open(emotions_csv_path) as f:
-
-        reader = csv.reader(f, delimiter=",")
-        for row in reader:
-            emotions.append(row)
-
-    emotions = list(itertools.chain.from_iterable(emotions))
 
     # Read data
     train = pd.read_csv(training_file_path)

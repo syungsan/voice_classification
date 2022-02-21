@@ -9,6 +9,7 @@ import numpy as np
 from keras.models import load_model
 import pyaudio  # 録音機能を使うためのライブラリ
 import wave     # wavファイルを扱うためのライブラリ
+import feature as feat
 
 
 # Path
@@ -16,7 +17,6 @@ base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
 data_dir_path = base_absolute_path + "data"
 temp_dir_path = base_absolute_path + "temp"
 output_wav_path = temp_dir_path + "/predict.wav"
-emotions_csv_path = data_dir_path + "/emotions.csv"
 max_mean_csv_path = data_dir_path + "/max_mean.csv"
 
 record_seconds = 4.0
@@ -63,17 +63,6 @@ def recording():
 
 if __name__ == "__main__":
 
-    import feature as feat
-
-    emotions = []
-    with open(emotions_csv_path) as f:
-
-        reader = csv.reader(f, delimiter=",")
-        for row in reader:
-            emotions.append(row)
-
-    emotions = list(itertools.chain.from_iterable(emotions))
-
     max_means = []
     with open(max_mean_csv_path) as f:
 
@@ -102,7 +91,7 @@ if __name__ == "__main__":
     X -= float(max_means[1])
 
     predictions = model.predict(X)
-    emotion = emotions[list(predictions[0]).index(predictions[0].max())]
+    emotion = feat.emotion_labels[list(predictions[0]).index(predictions[0].max())]
     print("\n{} 確信率: {}%".format(emotion, predictions[0].max() * 100))
 
     print("\nAll process completed...")

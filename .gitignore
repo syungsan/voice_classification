@@ -114,10 +114,12 @@ dmypy.json
 .pyre/
 
 .idea/
-MLP/data/wavs
-MLP/data/logs
-RNN/data/wavs
-RNN/data/logs
+wavs/
+MLP/data/logs/
+MLP/save/
+MLP/temp/
+RNN/data/logs/
 RNN/save/
+RNN/temp/
 resource/
 voice_classification.iml

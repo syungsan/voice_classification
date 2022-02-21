@@ -14,12 +14,15 @@ import scipy.stats as sp
 
 # Path
 base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
+raw_wav_dir_path = base_absolute_path + "../wavs/raws"
+augment_wav_dir_path = base_absolute_path + "../wavs/augment"
 data_dir_path = base_absolute_path + "data"
-raw_wav_dir_path = data_dir_path + "/wavs/raws"
-augment_wav_dir_path = data_dir_path + "/wavs/augment"
 training_file_path = data_dir_path + "/train.csv"
 test_file_path = data_dir_path + "/test.csv"
 emotions_csv_path = data_dir_path + "/emotions.csv"
+
+# 感情ラベルのリスト
+emotion_labels = ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"]
 
 is_mfcc = True
 is_pitch = True
@@ -120,6 +123,9 @@ def get_feature(file_path):
         mfccs = np.hstack((mfccs, energies.reshape(energies.shape[0], 1)))
 
         deltas = np.diff(mfccs, axis=0)
+        print(len(deltas))
+        print(len(deltas[0]))
+
         deltas = np.pad(deltas, [(1, 0), (0, 0)], "constant")
 
         ddeltas = np.diff(deltas, axis=0)
@@ -167,12 +173,17 @@ def get_feature(file_path):
             if read < hop_size:
                 break
 
-        features = sp.stats.zscore(pitches)
-        # features = preprocessing.minmax_scale(pitches)
-        features = np.nan_to_num(features)
-        feature = np.mean(features)
+        pitches = np.nan_to_num(pitches)
+        deltas = np.diff(pitches, axis=0)
 
-        all_features = np.concatenate([all_features, [feature]])
+        pitches = sp.zscore(pitches)
+        # pitches = preprocessing.minmax_scale(pitches)
+        deltas = sp.zscore(deltas)
+
+        pitch = np.mean(pitches)
+        delta = np.mean(deltas)
+
+        all_features = np.concatenate([all_features, [pitch], [delta]])
         print("Get Pitch in " + file_path + " ...")
 
     if is_volume:
@@ -195,12 +206,16 @@ def get_feature(file_path):
             if read < hop_size:
                 break
 
-        features = sp.stats.zscore(volumes)
-        # features = preprocessing.minmax_scale(volumes)
-        features = np.nan_to_num(features)
-        feature = np.mean(features)
+        volumes = np.nan_to_num(volumes)
+        deltas = np.diff(volumes, axis=0)
 
-        all_features = np.concatenate([all_features, [feature]])
+        pitches = sp.zscore(volumes)
+        deltas = sp.zscore(deltas)
+
+        volume = np.mean(volumes)
+        delta = np.mean(deltas)
+
+        all_features = np.concatenate([all_features, [volume], [delta]])
         print("Get Volume in " + file_path + " ...")
 
     if is_tempo:
@@ -221,12 +236,11 @@ def get_feature(file_path):
             if read < hop_size:
                 break
 
-        features = sp.stats.zscore(beats)
-        # features = preprocessing.minmax_scale(beats)
-        features = np.nan_to_num(features)
-        feature = np.mean(features)
+        beats = np.nan_to_num(beats)
+        beats = sp.zscore(beats)
+        beat = np.mean(beats)
 
-        all_features = np.concatenate([all_features, [feature]])
+        all_features = np.concatenate([all_features, [beat]])
         print("Get Tempo in " + file_path + " ...")
 
     return all_features
@@ -238,32 +252,26 @@ def convert_1d_to_2d(l, cols):
 
 if __name__ == "__main__":
 
-    emotions = os.listdir(raw_wav_dir_path)
-
-    with open(data_dir_path + "/emotions.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerows(convert_1d_to_2d(emotions, 1))
-
     print("\nMake training & test data from raw wavfile.\n")
     wav_count = 1
     all_wav_count = 0
 
-    for emotion in emotions:
+    for emotion_label in emotion_labels:
 
-        wav_path = raw_wav_dir_path + "/" + emotion
+        wav_path = raw_wav_dir_path + "/" + emotion_label
         wav_file_paths = glob.glob(wav_path + "/*.wav")
         all_wav_count += len(wav_file_paths)
 
     X = []
     y = []
 
-    for index, emotion in enumerate(emotions):
+    for index, emotion_label in enumerate(emotion_labels):
 
-        wav_path = raw_wav_dir_path + "/" + emotion
+        wav_path = raw_wav_dir_path + "/" + emotion_label
         wav_file_paths = glob.glob(wav_path + "/*.wav")
 
         for wav_file_path in wav_file_paths:
-            print("{}/{} - {}".format(wav_count, all_wav_count, emotion))
+            print("{}/{} - {}".format(wav_count, all_wav_count, emotion_label))
 
             y.append(index)
             features = get_feature(wav_file_path)
@@ -280,34 +288,36 @@ if __name__ == "__main__":
     print("\nNow test data write to test.csv.")
     write_csv(test_file_path, tests)
 
-    print("\nMake train data from augment wavfile.\n")
-    wav_count = 1
-    all_wav_count = 0
+    if os.path.isdir(augment_wav_dir_path) and len(os.listdir(augment_wav_dir_path)) != 0:
 
-    for emotion in emotions:
+        print("\nMake train data from augment wavfile.\n")
+        wav_count = 1
+        all_wav_count = 0
 
-        wav_path = augment_wav_dir_path + "/" + emotion
-        wav_file_paths = glob.glob(wav_path + "/*.wav")
-        all_wav_count += len(wav_file_paths)
+        for emotion_label in emotion_labels:
 
-    X = []
-    y = []
+            wav_path = augment_wav_dir_path + "/" + emotion_label
+            wav_file_paths = glob.glob(wav_path + "/*.wav")
+            all_wav_count += len(wav_file_paths)
 
-    for index, emotion in enumerate(emotions):
+        X = []
+        y = []
 
-        wav_path = augment_wav_dir_path + "/" + emotion
-        wav_file_paths = glob.glob(wav_path + "/*.wav")
+        for index, emotion_label in enumerate(emotion_labels):
 
-        for wav_file_path in wav_file_paths:
-            print("{}/{} - {}".format(wav_count, all_wav_count, emotion))
+            wav_path = augment_wav_dir_path + "/" + emotion_label
+            wav_file_paths = glob.glob(wav_path + "/*.wav")
 
-            y.append(index)
-            features = get_feature(wav_file_path)
-            X.append(features.tolist())
-            wav_count += 1
+            for wav_file_path in wav_file_paths:
+                print("{}/{} - {}".format(wav_count, all_wav_count, emotion_label))
 
-    X_train += X
-    y_train += y
+                y.append(index)
+                features = get_feature(wav_file_path)
+                X.append(features.tolist())
+                wav_count += 1
+
+        X_train += X
+        y_train += y
 
     trains = []
     for X, y in zip(X_train, y_train):

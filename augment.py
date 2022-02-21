@@ -10,10 +10,9 @@ import soundfile as sf
 
 
 # path
-base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
-data_dir_path = base_absolute_path + "data"
-raw_wav_dir_path = data_dir_path + "/wavs/raws"
-output_wav_dir_path = data_dir_path + "/wavs/augment"
+base_absolute_path = os.path.dirname(os.path.realpath(__file__))
+raw_wav_dir_path = base_absolute_path + "/wavs/raws"
+output_wav_dir_path = base_absolute_path + "/wavs/augment"
 
 # rate
 time_stretch_rates = [1.25, 1.5, 1.75, 2.0]
