@@ -123,9 +123,6 @@ def get_feature(file_path):
         mfccs = np.hstack((mfccs, energies.reshape(energies.shape[0], 1)))
 
         deltas = np.diff(mfccs, axis=0)
-        print(len(deltas))
-        print(len(deltas[0]))
-
         deltas = np.pad(deltas, [(1, 0), (0, 0)], "constant")
 
         ddeltas = np.diff(deltas, axis=0)
@@ -271,7 +268,7 @@ if __name__ == "__main__":
         wav_file_paths = glob.glob(wav_path + "/*.wav")
 
         for wav_file_path in wav_file_paths:
-            print("{}/{} - {}".format(wav_count, all_wav_count, emotion_label))
+            print("\n{}/{} - {}".format(wav_count, all_wav_count, emotion_label))
 
             y.append(index)
             features = get_feature(wav_file_path)
@@ -309,7 +306,7 @@ if __name__ == "__main__":
             wav_file_paths = glob.glob(wav_path + "/*.wav")
 
             for wav_file_path in wav_file_paths:
-                print("{}/{} - {}".format(wav_count, all_wav_count, emotion_label))
+                print("\n{}/{} - {}".format(wav_count, all_wav_count, emotion_label))
 
                 y.append(index)
                 features = get_feature(wav_file_path)
