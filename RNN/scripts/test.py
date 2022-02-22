@@ -4,126 +4,114 @@
 import numpy as np
 from keras.models import load_model
 from keras.utils import np_utils
-import scipy.stats as sp
 import os
 import csv
-import codecs
-from itertools import chain
+import glob
+import pandas as pd
+import scipy.stats as sp
+import shutil
+import tensorflow as tf
+import feature as feat
+import train as tr
 
-
-# 特徴量の次元数
-# MFCC: 39, PITCH: 2, VOLUME: 2, TEMPO: 1, RAW_WAV: 1
-FEATURE_MAX_LENGTH = 44
-
-# MFCCの区間平均の分割数
-TIME_SERIES_DIVISION_NUMBER = 90
-
-# "SimpleRNN", "SimpleRNNStack", "LSTM", "GRU", "Bidirectional_LSTM", "Bidirectional_GRU", "BiLSTMStack", "BiGRUStack", "CNN_RNN_BiGRU", "CNN_RNN_BiLSTM"
-MODEL_NAME = "CNN_RNN_BiLSTM"
-
-MODEL_FILE_NAME = "CNN_RNN_BiLSTM_2022-02-17_final03_80.3%_model.h5"
 
 # Path
-BASE_ABSOLUTE_PATH = os.path.dirname(os.path.realpath(__file__)) + "/../"
-DATA_DIR_PATH = BASE_ABSOLUTE_PATH + "data"
-TEST_FILE_PATH = DATA_DIR_PATH + "/test.csv"
-LOG_DIR_PATH = DATA_DIR_PATH + "/logs"
-EMOTION_LIST_PATH = DATA_DIR_PATH + "/emotion_list.csv"
-MODEL_FILE_PATH = LOG_DIR_PATH + "/" + MODEL_NAME + "/" + MODEL_FILE_NAME
+base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
+data_dir_path = base_absolute_path + "data"
+test_file_path = data_dir_path + "/test.csv"
+# max_mean_csv_path = data_dir_path + "/max_mean.csv"
+best_models_save_dir_path = data_dir_path + "/best_models"
+best_models_score_csv_path = data_dir_path + "/best_models/score.csv"
+log_dir_path = data_dir_path + "/logs"
+
+is_gpu = True
+
+if is_gpu:
+    gpu_devices = tf.config.experimental.list_physical_devices("GPU")
+    for device in gpu_devices:
+        tf.config.experimental.set_memory_growth(device, True)
+else:
+    # GPUの無効化
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
-def load_csv(file_name, delimiter):
+def write_csv(path, list):
 
-    lists = []
-    file = codecs.open(file_name, "r", "utf-8")
+    try:
+        # 書き込み UTF-8
+        with open(path, "w", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile, lineterminator="\n")
+            writer.writerows(list)
 
-    reader = csv.reader(file, delimiter=delimiter)
-
-    for line in reader:
-        lists.append(line)
-
-    file.close
-    return lists
-
-
-def load_data(file_name):
-    # load your data using this function
-
-    # CSVの制限を外す
-    # csv.field_size_limit(sys.maxsize)
-
-    data = []
-    target = []
-
-    with open(file_name, "r") as f:
-        reader = csv.reader(f, delimiter=",")
-
-        for columns in reader:
-            target.append(columns[0])
-
-            # こいつが決め手か？！
-            data.append(columns[1:])
-
-    data = np.array(data, dtype=np.float32)
-
-    # なぜか進数のエラーを返すので処理
-    target10b = []
-    for tar in target:
-        target10b.append(int(float(tar)))
-
-    target = np.array(target10b, dtype=np.int32)
-
-    return data, target
+    # 起こりそうな例外をキャッチ
+    except FileNotFoundError as e:
+        print(e)
+    except csv.Error as e:
+        print(e)
 
 
 if __name__ == "__main__":
 
-    emotion_list = load_csv(file_name=EMOTION_LIST_PATH, delimiter="\n")
-    emotions = list(chain.from_iterable(emotion_list))
-
-    X, y = load_data(file_name=TEST_FILE_PATH)
-
-    # NANを0に置換
-    # X = np.nan_to_num(X, nan=0.0)
-
-    emotion_index = y
-
-    # ラベルを one-hot-encoding形式 に変換
-    y = np_utils.to_categorical(y)
+    # Read data
+    test = pd.read_csv(test_file_path)
+    y_test = test.iloc[:, 0].values.astype("int32")
+    X_test = (test.iloc[:, 1:].values).astype("float32")
 
     # 時系列に変換
-    X = np.reshape(X, (X.shape[0], TIME_SERIES_DIVISION_NUMBER, FEATURE_MAX_LENGTH), order="F")
+    X_test = np.reshape(X_test, (X_test.shape[0], feat.time_series_division_number, feat.feature_max_length), order="F")
 
     # 3次元配列の2次元要素を1次元に（iOSのための取り計らい）
-    X = np.reshape(X, (X.shape[0], (TIME_SERIES_DIVISION_NUMBER * FEATURE_MAX_LENGTH)))
+    X_test = np.reshape(X_test, (X_test.shape[0], (feat.time_series_division_number * feat.feature_max_length)))
 
     # Z-Score関数による正規化
-    X = sp.stats.zscore(np.array(X), axis=1)
+    X_test = sp.zscore(X_test, axis=1)
 
-    # 学習済みのモデルを読み込む
-    model = load_model(MODEL_FILE_PATH)
+    y_test = np_utils.to_categorical(y_test)
 
-    model.summary()
+    if os.path.isdir(best_models_save_dir_path):
+        shutil.rmtree(best_models_save_dir_path)
 
-    model.compile(loss="categorical_crossentropy", optimizer="adadelta", metrics=["accuracy"])
+    os.makedirs(best_models_save_dir_path)
 
-    score = model.evaluate(X, y, verbose=0)
-    print("Test loss :", score[0])
-    print("Test accuracy :", score[1])
+    best_model_scores = []
+    best_model_scores.append(["accuracy", "loss", "best_model_name"])
 
-    predictions = model.predict(X)
+    for model_name in tr.model_names:
 
-    i = 0
-    for prediction in predictions:
+        evaluations = []
+        model_paths = glob.glob(log_dir_path + "/" + model_name + "/*.h5")
 
-        predict_word = emotions[list(prediction).index(prediction.max())]
-        reference_word = emotions[emotion_index[i]]
+        test_length = len(model_paths)
+        test_count = 1
 
-        if predict_word == reference_word:
-            print(reference_word + " == " + predict_word + " 正答 ○" + " 確信率 : " + str(prediction.max() * 100) + "%")
-        else:
-            print(reference_word + " != " + predict_word + " 誤答 ×" + " 確信率 : " + str(prediction.max() * 100) + "%")
+        for model_path in model_paths:
 
-        i += 1
+            model = load_model(model_path)
 
+            score = model.evaluate(X_test, y_test, verbose=1)
+            base_model_name = os.path.basename(model_path)
+
+            print("\nModel Detail Name: {}".format(base_model_name))
+            print("Test accuracy: {}".format(score[1]))
+            print("Test loss: {}".format(score[0]))
+
+            evaluations.append([score[1], score[0], base_model_name])
+            model = None
+
+            print("Test = {}/{} completed...\n".format(test_count, test_length))
+            test_count += 1
+
+        max_accuracy = max(evaluations)[0]
+        accuracy_maxs = [i for i in evaluations if i[0] == max_accuracy]
+
+        min_loss = min([r[1] for r in accuracy_maxs])
+        loss_mins = [i for i in accuracy_maxs if i[1] == min_loss]
+
+        best_model_scores.append(loss_mins[0])
+        best_model_name = loss_mins[0][2]
+
+        shutil.copy(log_dir_path + "/" + model_name + "/" + best_model_name, best_models_save_dir_path + "/" + best_model_name)
+
+    write_csv(best_models_score_csv_path, best_model_scores)
+    shutil.rmtree(log_dir_path)
     print("\nAll process completed...")

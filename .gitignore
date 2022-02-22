@@ -115,10 +115,10 @@ dmypy.json
 
 .idea/
 wavs/
-MLP/data/logs/
+MLP/data/
 MLP/save/
 MLP/temp/
-RNN/data/logs/
+RNN/data/
 RNN/save/
 RNN/temp/
 resource/
