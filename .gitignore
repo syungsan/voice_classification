@@ -115,7 +115,7 @@ dmypy.json
 
 .idea/
 wavs/
-data/
+save/
 temp/
 resource/
 voice_classification.iml
