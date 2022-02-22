@@ -24,7 +24,7 @@ test_file_path = data_dir_path + "/test.csv"
 emotion_labels = ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"]
 
 # MFCCの区間平均の分割数（1~）
-time_series_division_number = 1
+time_series_division_number = 30
 
 is_mfcc = True
 is_pitch = True
