@@ -2,22 +2,25 @@
 # coding: utf-8
 
 import os
-import csv
-import itertools
 import glob
 import numpy as np
 from keras.models import load_model
 import pyaudio  # 録音機能を使うためのライブラリ
 import wave     # wavファイルを扱うためのライブラリ
+import scipy.stats as sp
 import feature as feat
+import train as tr
 
 
 # Path
 base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
 data_dir_path = base_absolute_path + "data"
 temp_dir_path = base_absolute_path + "temp"
+best_models_save_dir_path = data_dir_path + "/best_models"
 output_wav_path = temp_dir_path + "/predict.wav"
-max_mean_csv_path = data_dir_path + "/max_mean.csv"
+
+model_number = 1
+model_name = tr.model_names[model_number]
 
 record_seconds = 4.0
 input_device_index = 0
@@ -63,32 +66,29 @@ def recording():
 
 if __name__ == "__main__":
 
-    max_means = []
-    with open(max_mean_csv_path) as f:
-
-        reader = csv.reader(f, delimiter=",")
-        for row in reader:
-            max_means.append(row)
-
-    max_means = list(itertools.chain.from_iterable(max_means))
-
     if not os.path.isdir(temp_dir_path):
         os.mkdir(temp_dir_path)
 
     # 学習済みのモデルを読み込む
-    model_path = glob.glob(data_dir_path + "/*.h5")[0]
+    model_paths = glob.glob(best_models_save_dir_path + "/*.h5")
+    model_path = [m for m in model_paths if model_name in m][0]
 
     model = load_model(model_path)
-    model.compile(loss="categorical_crossentropy", optimizer="rmsprop", metrics=["accuracy"])
 
     recording()
-    features = feat.get_feature(output_wav_path)
+    features = feat.get_edited_feature(output_wav_path)
 
     X = np.array(features, dtype=np.float32)
     X = np.array([X])
 
-    X /= float(max_means[0])
-    X -= float(max_means[1])
+    # 時系列に変換
+    # X = np.reshape(X, (X.shape[0], feat.time_series_division_number, feat.feature_max_length), order="F")
+
+    # 3次元配列の2次元要素を1次元に（iOSのための取り計らい）
+    # X = np.reshape(X, (X.shape[0], (feat.time_series_division_number * feat.feature_max_length)))
+
+    # Z-Score関数による正規化
+    X = sp.zscore(X, axis=1)
 
     predictions = model.predict(X)
     emotion = feat.emotion_labels[list(predictions[0]).index(predictions[0].max())]

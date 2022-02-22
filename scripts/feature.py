@@ -14,8 +14,8 @@ from statistics import mean
 
 # Path
 base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
-raw_wav_dir_path = base_absolute_path + "../wavs/raws"
-augment_wav_dir_path = base_absolute_path + "../wavs/augment"
+raw_wav_dir_path = base_absolute_path + "wavs/raws"
+augment_wav_dir_path = base_absolute_path + "wavs/augment"
 data_dir_path = base_absolute_path + "data"
 training_file_path = data_dir_path + "/train.csv"
 test_file_path = data_dir_path + "/test.csv"
@@ -319,6 +319,19 @@ def flatten_with_any_depth(nested_list):
     return flat_list
 
 
+def get_edited_feature(file_path):
+
+    features = get_feature(file_path)
+
+    section_averages = []
+    for feature in features:
+        section_averages.append(section_average(feature, time_series_division_number))
+
+    section_averages = flatten_with_any_depth(section_averages)
+
+    return section_averages
+
+
 if __name__ == "__main__":
 
     print("\nMake training & test data from raw wavfile.\n")
@@ -343,14 +356,8 @@ if __name__ == "__main__":
             print("{}/{} - {}".format(wav_count, all_wav_count, emotion_label))
 
             y.append(index)
-            features = get_feature(wav_file_path)
-
-            section_averages = []
-            for feature in features:
-                section_averages.append(section_average(feature, time_series_division_number))
-
-            section_averages = flatten_with_any_depth(section_averages)
-            X.append(section_averages)
+            features = get_edited_feature(wav_file_path)
+            X.append(features)
 
             print(emotion_label + " => " + os.path.basename(wav_file_path) + " section average was completed...\n")
             wav_count += 1

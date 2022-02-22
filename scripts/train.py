@@ -204,10 +204,10 @@ if __name__ == "__main__":
             print("Number of data resampled => {}: {}".format(i, np.sum(y_train == i)))
 
     # 時系列に変換
-    X_train = np.reshape(X_train, (X_train.shape[0], feat.time_series_division_number, feat.feature_max_length), order="F")
+    # X_train = np.reshape(X_train, (X_train.shape[0], feat.time_series_division_number, feat.feature_max_length), order="F")
 
     # 3次元配列の2次元要素を1次元に（iOSのための取り計らい）
-    X_train = np.reshape(X_train, (X_train.shape[0], (feat.time_series_division_number * feat.feature_max_length)))
+    # X_train = np.reshape(X_train, (X_train.shape[0], (feat.time_series_division_number * feat.feature_max_length)))
 
     # Z-Score関数による正規化
     X_train = sp.zscore(X_train, axis=1)

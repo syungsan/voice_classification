@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import numpy as np
+# import numpy as np
 from keras.models import load_model
 from keras.utils import np_utils
 import os
@@ -11,7 +11,7 @@ import pandas as pd
 import scipy.stats as sp
 import shutil
 import tensorflow as tf
-import feature as feat
+# import feature as feat
 import train as tr
 
 
@@ -58,10 +58,10 @@ if __name__ == "__main__":
     X_test = (test.iloc[:, 1:].values).astype("float32")
 
     # 時系列に変換
-    X_test = np.reshape(X_test, (X_test.shape[0], feat.time_series_division_number, feat.feature_max_length), order="F")
+    # X_test = np.reshape(X_test, (X_test.shape[0], feat.time_series_division_number, feat.feature_max_length), order="F")
 
     # 3次元配列の2次元要素を1次元に（iOSのための取り計らい）
-    X_test = np.reshape(X_test, (X_test.shape[0], (feat.time_series_division_number * feat.feature_max_length)))
+    # X_test = np.reshape(X_test, (X_test.shape[0], (feat.time_series_division_number * feat.feature_max_length)))
 
     # Z-Score関数による正規化
     X_test = sp.zscore(X_test, axis=1)
