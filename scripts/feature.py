@@ -334,6 +334,9 @@ def get_edited_feature(file_path):
 
 if __name__ == "__main__":
 
+    if not os.path.isdir(data_dir_path):
+        os.mkdir(data_dir_path)
+
     print("\nMake training & test data from raw wavfile.\n")
     wav_count = 1
     all_wav_count = 0
