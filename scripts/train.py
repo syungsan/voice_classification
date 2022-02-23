@@ -29,7 +29,7 @@ log_dir_path = data_dir_path + "/logs"
 database_path = data_dir_path + "/evaluation.sqlite3"
 
 # model_names = ["DDMLP", "Simple_RNN", "LSTM", "GRU", "Bidirectional_LSTM", "Bidirectional_GRU", "CNN_RNN_BiLSTM_Stack"]
-model_names = ["DDMLP", "Simple_RNN", "LSTM"]
+model_names = ["DDMLP"]
 
 nb_classes = len(feat.emotion_labels)
 
