@@ -13,16 +13,18 @@ import soundfile as sf
 base_absolute_path = os.path.dirname(os.path.realpath(__file__)) + "/../"
 raw_wav_dir_path = base_absolute_path + "wavs/raws"
 output_wav_dir_path = base_absolute_path + "wavs/augment"
+broken_wav_dir_path = base_absolute_path + "wavs/broken"
 
 # rate
 time_stretch_rates = [1.25, 1.5, 1.75, 2.0]
 pitch_shift_rates = [-4, -2, 2, 4]
 
 # flag
-is_add_white_noise = True
+is_add_white_noise = False
 is_position_shift = False
 is_time_stretch = False
-is_pitch_shift = True
+is_pitch_shift = False
+is_file_convert_only = True
 
 
 # load a wave data
@@ -94,8 +96,18 @@ if __name__ == "__main__":
             if not os.path.isdir(_output_wav_dir_path):
                 os.mkdir(_output_wav_dir_path)
 
-            x, fs = load_wave_data(wav_file_path)
             filename = os.path.basename(wav_file_path)
+
+            try:
+                x, fs = load_wave_data(wav_file_path)
+            except Exception as e:
+
+                print(e)
+                print("\n{}: {} is broken!!!".format(word, filename))
+                
+                os.makedirs(broken_wav_dir_path, exist_ok=True)
+                shutil.move(wav_file_path, broken_wav_dir_path + "/" + filename)
+                break
 
             if is_add_white_noise:
 
@@ -132,6 +144,12 @@ if __name__ == "__main__":
 
                     save_file_path = _output_wav_dir_path + "/pitch_shift_rate_" + str(pitch_shift_rate) + "_" + filename
                     sf.write(save_file_path, x_pt, fs)
+
+            if is_file_convert_only:
+
+                save_file_path = _output_wav_dir_path + "/" + filename
+                sf.write(save_file_path, x, fs)
+                print("{}/{} - {}: Wavfile converted {}.".format(wav_count, all_wav_count, word, wav_file_path))
 
             wav_count += 1
 
