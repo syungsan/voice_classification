@@ -16,15 +16,17 @@ output_wav_dir_path = base_absolute_path + "wavs/augment"
 broken_wav_dir_path = base_absolute_path + "wavs/broken"
 
 # rate
-time_stretch_rates = [1.25, 1.5, 1.75, 2.0]
-pitch_shift_rates = [-4, -2, 2, 4]
+add_white_noise_rates = [0.002, 0.003]
+position_shift_rates = [2, 3]
+time_stretch_rates = [0.8, 1.2] # [1.25, 1.5, 1.75, 2.0]
+pitch_shift_rates = [-3, 3] # [-4, -2, 2, 4]
 
 # flag
-is_add_white_noise = False
-is_position_shift = False
-is_time_stretch = False
-is_pitch_shift = False
-is_file_convert_only = True
+is_add_white_noise = True
+is_position_shift = True
+is_time_stretch = True
+is_pitch_shift = True
+is_file_convert_only = False
 
 
 # load a wave data
@@ -52,7 +54,7 @@ def position_shift(x, rate=2):
 def time_stretch(x, rate=1.1):
 
     input_length = len(x)
-    x = librosa.effects.time_stretch(x, rate)
+    x = librosa.effects.time_stretch(y=x, rate=rate)
 
     if len(x) > input_length:
         return x[:input_length]
@@ -114,26 +116,30 @@ if __name__ == "__main__":
 
             if is_add_white_noise:
 
-                x_wn = add_white_noise(x)
-                print("{}/{} - {}: Add white noise {}.".format(wav_count, all_wav_count, word, wav_file_path))
+                for add_white_noise_rate in add_white_noise_rates:
 
-                save_file_path = _output_wav_dir_path + "/augment_white_noise_" + filename
-                sf.write(save_file_path, x_wn, fs)
+                    x_wn = add_white_noise(x, add_white_noise_rate)
+                    print("{}/{} - {}: Add white noise {} rate {}.".format(wav_count, all_wav_count, word, wav_file_path, add_white_noise_rate))
+
+                    save_file_path = _output_wav_dir_path + "/add_white_noise_rate_" + str(add_white_noise_rate) + "_" + filename
+                    sf.write(save_file_path, x_wn, fs)
 
             if is_position_shift:
 
-                x_ss = position_shift(x)
-                print("{}/{} - {}: Position shifted {}.".format(wav_count, all_wav_count, word, wav_file_path))
+                for position_shift_rate in position_shift_rates:
 
-                save_file_path = _output_wav_dir_path + "/augment_position_shift_" + filename
-                sf.write(save_file_path, x_ss, fs)
+                    x_ss = position_shift(x, position_shift_rate)
+                    print("{}/{} - {}: Position shifted {} rate {}.".format(wav_count, all_wav_count, word, wav_file_path, position_shift_rate))
+
+                    save_file_path = _output_wav_dir_path + "/position_shift_rate_" + str(position_shift_rate) + "_" +filename
+                    sf.write(save_file_path, x_ss, fs)
 
             if is_time_stretch:
 
                 for time_stretch_rate in time_stretch_rates:
 
                     x_st = time_stretch(x, time_stretch_rate)
-                    print("{}/{} - {}: Time stretched {}.".format(wav_count, all_wav_count, word, wav_file_path))
+                    print("{}/{} - {}: Time stretched {} rate {}.".format(wav_count, all_wav_count, word, wav_file_path, time_stretch_rate))
 
                     save_file_path = _output_wav_dir_path + "/time_stretch_rate_" + str(time_stretch_rate) + "_" + filename
                     sf.write(save_file_path, x_st, fs)
@@ -143,7 +149,7 @@ if __name__ == "__main__":
                 for pitch_shift_rate in pitch_shift_rates:
 
                     x_pt = pitch_shift(x, fs, pitch_shift_rate)
-                    print("{}/{} - {}: Pitch shifted {}.".format(wav_count, all_wav_count, word, wav_file_path))
+                    print("{}/{} - {}: Pitch shifted {} rate {}.".format(wav_count, all_wav_count, word, wav_file_path, pitch_shift_rate))
 
                     save_file_path = _output_wav_dir_path + "/pitch_shift_rate_" + str(pitch_shift_rate) + "_" + filename
                     sf.write(save_file_path, x_pt, fs)
