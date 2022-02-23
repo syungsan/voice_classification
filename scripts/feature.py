@@ -27,9 +27,9 @@ emotion_labels = ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutr
 time_series_division_number = 1
 
 is_mfcc = True
-is_pitch = False
-is_volume = False
-is_tempo = False
+is_pitch = True
+is_volume = True
+is_tempo = True
 
 # 特徴量の次元数
 feature_max_length = 0
