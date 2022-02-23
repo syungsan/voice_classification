@@ -102,12 +102,15 @@ if __name__ == "__main__":
                 x, fs = load_wave_data(wav_file_path)
             except Exception as e:
 
-                print(e)
-                print("\n{}: {} is broken!!!".format(word, filename))
-                
-                os.makedirs(broken_wav_dir_path, exist_ok=True)
+                print("\n{}".format(e))
+                print("{}: {} is broken!!!\n".format(word, filename))
+
+                if not os.path.isdir(broken_wav_dir_path):
+                    os.makedirs(broken_wav_dir_path)
+
                 shutil.move(wav_file_path, broken_wav_dir_path + "/" + filename)
-                break
+                wav_count += 1
+                continue
 
             if is_add_white_noise:
 
