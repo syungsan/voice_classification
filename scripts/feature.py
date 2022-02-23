@@ -24,12 +24,12 @@ test_file_path = data_dir_path + "/test.csv"
 emotion_labels = ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"]
 
 # MFCCの区間平均の分割数（1~）
-time_series_division_number = 30
+time_series_division_number = 10
 
 is_mfcc = True
-is_pitch = True
-is_volume = True
-is_tempo = True
+is_pitch = False
+is_volume = False
+is_tempo = False
 
 # 特徴量の次元数
 feature_max_length = 0
