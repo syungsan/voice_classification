@@ -19,7 +19,7 @@ temp_dir_path = base_absolute_path + "temp"
 best_models_save_dir_path = data_dir_path + "/best_models"
 output_wav_path = temp_dir_path + "/predict.wav"
 
-model_number = 1
+model_number = 0
 model_name = tr.model_names[model_number]
 
 record_seconds = 4.0
